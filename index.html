@@ -147,7 +147,7 @@ footer .wrap{padding:32px 20px;display:flex;flex-wrap:wrap;justify-content:space
   </div>
   <div class="card hero-card" aria-labelledby="hero-title">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-      <span class="label" id="hero-title">Report from 20 March 2026</span><span class="tag bt">BACKTEST</span>
+      <span class="label" id="hero-title">Report from 20 March 2026</span><span class="tag bt">BACKTEST + LIVE</span>
     </div>
     <div class="bignum" id="h-total">—</div>
     <span id="h-range" hidden></span>
@@ -228,7 +228,7 @@ footer .wrap{padding:32px 20px;display:flex;flex-wrap:wrap;justify-content:space
 <div class="wrap">
   <span class="label">Trade log</span>
   <h2>Every day</h2>
-  <p class="sub">Newest first. CALL / PUT and ₹ for each trading day, full system.</p>
+  <p class="sub">Newest first. CALL / PUT and ₹ for each trading day, full system. <b>LIVE</b> = real trades with real fill prices; other days are backtest.</p>
   <div class="tbox">
     <table>
       <thead><tr><th>Date</th><th>Trades</th><th class="r">Nifty pts</th><th class="r">₹ profit</th><th class="r">Total since 20 Mar</th></tr></thead>
@@ -309,7 +309,7 @@ footer .wrap{padding:32px 20px;display:flex;flex-wrap:wrap;justify-content:space
 <div class="wrap">
   <div style="max-width:680px">
     <div style="color:var(--text);font-weight:700;margin-bottom:8px">ALGO DESK</div>
-    Backtest results come from past market data and do not guarantee future results. ₹ figures are estimates on 1 lot (65 qty) plus the KP add-on lot, after costs. Trading in options carries high risk. Not investment advice. No tips, no paid groups.
+    Days marked LIVE are real trades of the running system at actual fill prices (before brokerage and taxes); all other days are backtest results from past market data. Past results do not guarantee future results. ₹ figures are estimates on 1 lot (65 qty) plus the KP add-on lot, after costs. Trading in options carries high risk. Not investment advice. No tips, no paid groups.
   </div>
   <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
     <a href="https://www.youtube.com/@tradingwithketansood" target="_blank" rel="noopener">YouTube @tradingwithketansood</a>
@@ -399,7 +399,7 @@ footer .wrap{padding:32px 20px;display:flex;flex-wrap:wrap;justify-content:space
 
   // daily log
   let run = 0; const rows = days.map(d => { run += d.rs; return {d, run}; }).reverse();
-  const rowHtml = ({d, run}) => `<tr><td style="font-family:var(--sans)">${fd(d.d, {weekday:"short", day:"2-digit", month:"short", year:"numeric"})}</td><td style="font-family:var(--sans)">${d.trades.map(t => `<span class="side ${t.side}">${t.side}</span>`).join("")}</td><td class="r">${d.pts >= 0 ? "+" : ""}${d.pts.toFixed(1)}</td><td class="r ${d.rs >= 0 ? "up" : "down"}" style="font-weight:700">${inr(d.rs)}</td><td class="r gold">${inr(run)}</td></tr>`;
+  const rowHtml = ({d, run}) => `<tr><td style="font-family:var(--sans)">${fd(d.d, {weekday:"short", day:"2-digit", month:"short", year:"numeric"})} ${d.live ? '<span class="tag live" style="font-size:10px;padding:2px 6px">LIVE</span>' : ''}</td><td style="font-family:var(--sans)">${d.trades.map(t => `<span class="side ${t.side}">${t.side}</span>`).join("")}</td><td class="r">${d.pts >= 0 ? "+" : ""}${d.pts.toFixed(1)}</td><td class="r ${d.rs >= 0 ? "up" : "down"}" style="font-weight:700">${inr(d.rs)}</td><td class="r gold">${inr(run)}</td></tr>`;
   let showAll = false;
   const drawDays = () => { $("d-body").innerHTML = (showAll ? rows : rows.slice(0, 10)).map(rowHtml).join(""); $("d-more").textContent = showAll ? "Show fewer" : "Show all " + rows.length + " days"; };
   $("d-more").addEventListener("click", () => { showAll = !showAll; drawDays(); });
