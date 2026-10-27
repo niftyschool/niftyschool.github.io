@@ -70,6 +70,8 @@ h1{font-size:clamp(38px,5.6vw,62px);line-height:1.05;margin:20px 0 18px;letter-s
 .cal-month .label{margin-bottom:8px}
 .cal-grid{display:grid;grid-template-columns:repeat(5,22px);gap:5px}
 .cal-cell{width:22px;height:22px;border-radius:5px;background:#E5E9F0}
+.cal-cell.skip{background:#D5DBE5;color:#64748B;font:700 11px/22px var(--sans);text-align:center;cursor:help}
+.cal-cell.hol{background:transparent;box-shadow:inset 0 0 0 1.5px #CBD5E1}
 .legend{display:flex;flex-wrap:wrap;gap:18px;color:var(--dim);font-size:14px;margin-top:16px}
 .legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
 
@@ -218,7 +220,7 @@ footer .wrap{padding:32px 20px;display:flex;flex-wrap:wrap;justify-content:space
   <div class="card chart-card" style="margin-top:20px">
     <span class="label">Every trading day, green = profit, red = loss</span>
     <div class="cal" id="cal" style="margin-top:16px"></div>
-    <div class="legend"><span><i style="background:#059669"></i>bigger profit</span><span><i style="background:#86EFAC"></i>small profit</span><span><i style="background:#F87171"></i>loss</span><span><i style="background:#E5E9F0"></i>no trade</span><span><i style="background:#E5E9F0;box-shadow:inset 0 0 0 2px #94A3B8"></i>no trade, reason in the log</span></div>
+    <div class="legend"><span><i style="background:#059669"></i>bigger profit</span><span><i style="background:#86EFAC"></i>small profit</span><span><i style="background:#F87171"></i>loss</span><span><i style="background:#D5DBE5"></i>S = skipped (no trade, reason in the daily log)</span><span><i style="background:transparent;box-shadow:inset 0 0 0 1.5px #CBD5E1"></i>NSE holiday</span></div>
   </div>
 </div>
 </section>
@@ -376,14 +378,17 @@ footer .wrap{padding:32px 20px;display:flex;flex-wrap:wrap;justify-content:space
   // monthly table
   const months = {};
   days.forEach(d => { const m = d.d.slice(0, 7); (months[m] = months[m] || {days:0, trades:0, wins:0, rs:0, pts:0}); const o = months[m]; o.days++; o.rs += d.rs; o.pts += d.pts; d.trades.forEach(t => { o.trades++; if (t.rs > 0) o.wins++; }); });
+  const skipped = {}; (D.noTrade || []).forEach(n => { const m = n.d.slice(0, 7); skipped[m] = (skipped[m] || 0) + 1; });
+  const totalSkipped = (D.noTrade || []).length;
+  const daysCell = (n, sk) => sk ? `${n} <span style="color:#94A3B8;font-size:12px;white-space:nowrap">· ${sk} skipped</span>` : `${n}`;
   const mk = Object.keys(months).sort().reverse(), mx = Math.max(...mk.map(k => Math.abs(months[k].rs)));
   $("s-months").textContent = mk.filter(k => months[k].rs > 0).length + " of " + mk.length;
-  $("m-body").innerHTML = mk.map(k => { const o = months[k]; return `<tr><td style="font-family:var(--sans);font-weight:600">${fd(k + "-01", {month:"long", year:"numeric"})}</td><td>${o.days}</td><td>${o.trades}</td><td>${Math.round(o.wins / o.trades * 100)}%</td><td>${o.pts >= 0 ? "+" : ""}${o.pts.toFixed(1)}</td><td><div class="bar" style="width:${Math.max(4, Math.abs(o.rs) / mx * 100)}%;${o.rs < 0 ? "background:var(--down)" : ""}"></div></td><td class="r ${o.rs >= 0 ? "up" : "down"}" style="font-weight:700">${inr(o.rs)}</td></tr>`; }).join("");
-  $("m-foot").innerHTML = `<td style="font-family:var(--sans);font-weight:700;border-top:2px solid var(--line2)">Total</td><td style="border-top:2px solid var(--line2)">${days.length}</td><td style="border-top:2px solid var(--line2)">${trades.length}</td><td style="border-top:2px solid var(--line2)">${Math.round(wins.length / trades.length * 100)}%</td><td style="border-top:2px solid var(--line2)">+${days.reduce((s, d) => s + d.pts, 0).toFixed(1)}</td><td style="border-top:2px solid var(--line2)"></td><td class="r up" style="font-weight:700;border-top:2px solid var(--line2)">${inr(total)}</td>`;
+  $("m-body").innerHTML = mk.map(k => { const o = months[k]; return `<tr><td style="font-family:var(--sans);font-weight:600">${fd(k + "-01", {month:"long", year:"numeric"})}</td><td>${daysCell(o.days, skipped[k])}</td><td>${o.trades}</td><td>${Math.round(o.wins / o.trades * 100)}%</td><td>${o.pts >= 0 ? "+" : ""}${o.pts.toFixed(1)}</td><td><div class="bar" style="width:${Math.max(4, Math.abs(o.rs) / mx * 100)}%;${o.rs < 0 ? "background:var(--down)" : ""}"></div></td><td class="r ${o.rs >= 0 ? "up" : "down"}" style="font-weight:700">${inr(o.rs)}</td></tr>`; }).join("");
+  $("m-foot").innerHTML = `<td style="font-family:var(--sans);font-weight:700;border-top:2px solid var(--line2)">Total</td><td style="border-top:2px solid var(--line2)">${daysCell(days.length, totalSkipped)}</td><td style="border-top:2px solid var(--line2)">${trades.length}</td><td style="border-top:2px solid var(--line2)">${Math.round(wins.length / trades.length * 100)}%</td><td style="border-top:2px solid var(--line2)">+${days.reduce((s, d) => s + d.pts, 0).toFixed(1)}</td><td style="border-top:2px solid var(--line2)"></td><td class="r up" style="font-weight:700;border-top:2px solid var(--line2)">${inr(total)}</td>`;
 
   // calendar (weekdays of each month, Mon–Fri columns)
   const byDate = Object.fromEntries(days.map(d => [d.d, d]));
-  const noTrade = D.noTrade || [], ntBy = Object.fromEntries(noTrade.map(n => [n.d, n]));
+  const noTrade = D.noTrade || [], ntBy = Object.fromEntries(noTrade.map(n => [n.d, n])), HOL = new Set(D.holidays || []);
   const big = Math.max(...days.map(d => d.rs));
   $("cal").innerHTML = mk.slice().reverse().map(k => {
     const [y, m] = k.split("-").map(Number), first = new Date(y, m - 1, 1), n = new Date(y, m, 0).getDate();
@@ -394,7 +399,11 @@ footer .wrap{padding:32px 20px;display:flex;flex-wrap:wrap;justify-content:space
       const iso = k + "-" + String(dd2).padStart(2, "0"), r = byDate[iso];
       const bg = !r ? "#E5E9F0" : r.rs < 0 ? "#F87171" : (r.rs > big * .25 ? "#059669" : "#86EFAC");
       const nt = ntBy[iso];
-      cells += `<div class="cal-cell" style="background:${bg}${nt ? ";box-shadow:inset 0 0 0 2px #94A3B8" : ""}" title="${fd(iso)}${r ? " · " + inr(r.rs) : " · no trade" + (nt ? ": " + nt.why : "")}"></div>`;
+      const hol = HOL.has(iso), future = iso > D.updated;
+      cells += r ? `<div class="cal-cell" style="background:${bg}" title="${fd(iso)} · ${inr(r.rs)}"></div>`
+        : nt ? `<div class="cal-cell skip" title="${fd(iso)} · SKIPPED: ${nt.why}">S</div>`
+        : hol ? `<div class="cal-cell hol" title="${fd(iso)} · NSE holiday (market closed)"></div>`
+        : `<div class="cal-cell" style="background:${future ? "transparent" : "#E5E9F0"}"></div>`;
     }
     return `<div class="cal-month"><div class="label">${fd(k + "-01", {month:"short", year:"numeric"})}</div><div class="cal-grid">${cells}</div></div>`;
   }).join("");
@@ -404,7 +413,7 @@ footer .wrap{padding:32px 20px;display:flex;flex-wrap:wrap;justify-content:space
   const all = days.map(d => ({d})).concat(noTrade.map(n => ({d: {d: n.d, nt: true, why: n.why, rs: 0, pts: 0, trades: []}})))
     .sort((a, b) => a.d.d < b.d.d ? -1 : 1);
   const rows = all.map(({d}) => { run += d.rs; return {d, run}; }).reverse();
-  const ntHtml = ({d, run}) => `<tr style="background:#F8FAFC"><td style="font-family:var(--sans)">${fd(d.d, {weekday:"short", day:"2-digit", month:"short", year:"numeric"})} <span class="tag" style="font-size:10px;padding:2px 6px;background:#E2E8F0;color:#475569">NO TRADE</span></td><td colspan="2" style="font-family:var(--sans);font-size:12px;color:#64748B;white-space:normal">${d.why}</td><td class="r" style="color:#94A3B8">₹0</td><td class="r gold">${inr(run)}</td></tr>`;
+  const ntHtml = ({d, run}) => `<tr style="background:#F8FAFC"><td style="font-family:var(--sans)">${fd(d.d, {weekday:"short", day:"2-digit", month:"short", year:"numeric"})} <span class="tag" style="font-size:10px;padding:2px 6px;background:#E2E8F0;color:#475569">SKIPPED</span></td><td colspan="2" style="font-family:var(--sans);font-size:12px;color:#64748B;white-space:normal">${d.why}</td><td class="r" style="color:#94A3B8">₹0</td><td class="r gold">${inr(run)}</td></tr>`;
   const rowHtml0 = ({d, run}) => `<tr><td style="font-family:var(--sans)">${fd(d.d, {weekday:"short", day:"2-digit", month:"short", year:"numeric"})} ${d.live ? '<span class="tag live" style="font-size:10px;padding:2px 6px">LIVE</span>' : ''}</td><td style="font-family:var(--sans)">${d.trades.map(t => `<span class="side ${t.side}">${t.side}</span>`).join("")}</td><td class="r">${d.pts >= 0 ? "+" : ""}${d.pts.toFixed(1)}</td><td class="r ${d.rs >= 0 ? "up" : "down"}" style="font-weight:700">${inr(d.rs)}</td><td class="r gold">${inr(run)}</td></tr>`;
   let showAll = false;
   const rowHtml = x => x.d.nt ? ntHtml(x) : rowHtml0(x);
